@@ -8534,8 +8534,13 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        }
    }
    else if(!strcmp(WLAN_NV_FILE, pfileName)) {
-
-       status = request_firmware(&pHddCtx->nv, pfileName, pHddCtx->parent_dev);
+        char sysfs_fname[50];
+        if (wcnss_get_wlan_nv_name(sysfs_fname) != 0) {
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s: wcnss_get_wlan_nv_name returned non zero", __func__);
+            memcpy(sysfs_fname, WLAN_NV_FILE, sizeof(WLAN_NV_FILE));
+        }
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s: sysfs_name is: %s",  __func__, sysfs_fname);
+        status = request_firmware(&pHddCtx->nv, sysfs_fname, pHddCtx->parent_dev);
 
        if(status || !pHddCtx->nv || !pHddCtx->nv->data) {
            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: nv %s download failed",
@@ -13044,6 +13049,13 @@ static int hdd_generate_iface_mac_addr_auto(hdd_context_t *pHddCtx,
    unsigned int serialno;
    serialno = wcnss_get_serial_number();
 
+   /* BEGIN Motorola, gambugge, IKSWO-55806: Update OUI for WiFi fallback MAC address */
+   /* Motorola OUI */
+   mac_addr.bytes[0] = 0xF0;
+   mac_addr.bytes[1] = 0xD7;
+   mac_addr.bytes[2] = 0xAA;
+   /* END IKSWO-55806 */
+
    if (0 != serialno)
    {
       /* MAC address has 3 bytes of OUI so we have a maximum of 3
@@ -13884,6 +13896,22 @@ int hdd_wlan_startup(struct device *dev )
    }
    {
       eHalStatus halStatus;
+
+      /* Overwrite the Mac address if config file exist */
+      if (VOS_STATUS_SUCCESS != hdd_update_mac_config(pHddCtx))
+      {
+         hddLog(VOS_TRACE_LEVEL_WARN,
+                "%s: Didn't overwrite MAC from config file",
+                __func__);
+      } else {
+         pr_info("%s: WLAN Mac Addr from config: %02X:%02X:%02X:%02X:%02X:%02X\n", WLAN_MODULE_NAME,
+                 pHddCtx->cfg_ini->intfMacAddr[0].bytes[0],
+                 pHddCtx->cfg_ini->intfMacAddr[0].bytes[1],
+                 pHddCtx->cfg_ini->intfMacAddr[0].bytes[2],
+                 pHddCtx->cfg_ini->intfMacAddr[0].bytes[3],
+                 pHddCtx->cfg_ini->intfMacAddr[0].bytes[4],
+                 pHddCtx->cfg_ini->intfMacAddr[0].bytes[5]);
+      }
 
       /* Set the MAC Address Currently this is used by HAL to
        * add self sta. Remove this once self sta is added as
@@ -15135,11 +15163,12 @@ wlan_hdd_is_GO_power_collapse_allowed (hdd_context_t* pHddCtx)
                  FL("GO started"));
           return TRUE;
      }
-     else
+     else {
           /* wait till GO changes its interface to p2p device */
           hddLog(VOS_TRACE_LEVEL_INFO,
                  FL("Del_bss called, avoid apps suspend"));
           return FALSE;
+     }
 
 }
 /* Decide whether to allow/not the apps power collapse. 

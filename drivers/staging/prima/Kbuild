@@ -67,7 +67,7 @@ CONFIG_QCOM_ESE_UPLOAD := n
 # Feature flags which are not (currently) configurable via Kconfig
 
 #Whether to build debug version
-BUILD_DEBUG_VERSION := 1
+BUILD_DEBUG_VERSION := 0
 
 #Enable this flag to build driver in diag version
 BUILD_DIAG_VERSION := 1
@@ -698,6 +698,9 @@ endif
 # enable the MAC Address auto-generation feature
 CDEFINES += -DWLAN_AUTOGEN_MACADDR_FEATURE
 
+# Moto read MACs from boot params instead of NV file
+CDEFINES += -DMOTO_UTAGS_MAC
+
 ifeq ($(CONFIG_WLAN_FEATURE_11W),y)
 CDEFINES += -DWLAN_FEATURE_11W
 endif
@@ -746,7 +749,15 @@ CDEFINES += -DEXISTS_MSM_SMSM
 endif
 
 # Fix build for GCC 4.7
-EXTRA_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-function
+EXTRA_CFLAGS += $(call cc-disable-warning,maybe-uninitialized,) -Wno-unused-function -Wno-unused-variable
+
+# Not gonna fix these warnings, clang!
+ifeq ($(cc-name),clang)
+EXTRA_CFLAGS += $(call cc-disable-warning,array-bounds,)
+endif
+EXTRA_CFLAGS += $(call cc-disable-warning,enum-conversion,)
+EXTRA_CFLAGS += $(call cc-disable-warning,non-literal-null-conversion,)
+EXTRA_CFLAGS += $(call cc-disable-warning,typedef-redefinition,)
 
 ifeq ($(CONFIG_WLAN_OFFLOAD_PACKETS),y)
 CDEFINES += -DWLAN_FEATURE_OFFLOAD_PACKETS

@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2013-2015, The Linux Foundation. All rights reserved.
  *
@@ -17,6 +18,7 @@
 #include <linux/init.h>
 #include <linux/cpufreq.h>
 #include <linux/cpu.h>
+#include <linux/kthread.h>
 #include <linux/sched.h>
 #include <linux/moduleparam.h>
 #include <linux/slab.h>
@@ -33,7 +35,7 @@ struct cpu_sync {
 
 static DEFINE_PER_CPU(struct cpu_sync, sync_info);
 
-static struct work_struct input_boost_work;
+static struct kthread_work input_boost_work;
 
 static unsigned int input_boost_enabled = 1;
 module_param(input_boost_enabled, uint, 0644);
@@ -54,7 +56,6 @@ static u64 last_input_time;
 static struct kthread_worker cpu_boost_worker;
 static struct task_struct *cpu_boost_worker_thread;
 
-#define MIN_INPUT_INTERVAL (150 * USEC_PER_MSEC)
 
 static int set_input_boost_freq(const char *buf, const struct kernel_param *kp)
 {
@@ -236,7 +237,8 @@ static void do_input_boost(struct kthread_work *work)
 		stune_boost_active = true;
 #endif /* CONFIG_DYNAMIC_STUNE_BOOST */
 
-	schedule_delayed_work(&input_boost_rem, msecs_to_jiffies(input_boost_ms));
+	queue_delayed_work(system_power_efficient_wq,
+		&input_boost_rem, msecs_to_jiffies(input_boost_ms));
 }
 
 static void cpuboost_input_event(struct input_handle *handle,
@@ -338,19 +340,12 @@ static int cpu_boost_init(void)
 {
 	int cpu, ret, i;
 	struct cpu_sync *s;
-	struct sched_param param = { .sched_priority = 2 };
-	cpumask_t sys_bg_mask;
-
-	/* Hardcode the cpumask to bind the kthread to it */
-	for (i = 0; i <= 2; i++) {
-		cpumask_set_cpu(i, &sys_bg_mask);
-	}
+	struct sched_param param = { .sched_priority = MAX_RT_PRIO - 2 };
 
 	init_kthread_worker(&cpu_boost_worker);
-	cpu_boost_worker_thread = kthread_create(kthread_worker_fn,
+	cpu_boost_worker_thread = kthread_run(kthread_worker_fn,
 		&cpu_boost_worker, "cpu_boost_worker_thread");
-	if (IS_ERR(cpu_boost_worker_thread)) {
-		pr_err("cpu-boost: Failed to init kworker!\n");
+	if (IS_ERR(cpu_boost_worker_thread))
 		return -EFAULT;
 	}
 
@@ -363,6 +358,8 @@ static int cpu_boost_init(void)
 
 	/* Wake it up! */
 	wake_up_process(cpu_boost_worker_thread);
+
+	sched_setscheduler(cpu_boost_worker_thread, SCHED_FIFO, &param);
 
 	init_kthread_work(&input_boost_work, do_input_boost);
 	INIT_DELAYED_WORK(&input_boost_rem, do_input_boost_rem);

@@ -1295,5 +1295,7 @@ source "drivers/input/touchscreen/nova_mmi/Kconfig"
 
 config WAKE_GESTURES
 	bool "wake gestures"
+config SCREEN_OFF_GESTURES
+	bool "screen off gestures"
 
 endif

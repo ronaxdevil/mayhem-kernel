@@ -77,8 +77,7 @@
 #include <linux/compiler.h>
 #include <linux/kcov.h>
 #include <linux/cpufreq.h>
-#include <linux/devfreq_boost.h>
-#include <linux/cpu_input_boost.h>
+#include <linux/cpu_boost.h>
 
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>

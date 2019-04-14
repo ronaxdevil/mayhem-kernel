@@ -77,7 +77,8 @@
 #include <linux/compiler.h>
 #include <linux/kcov.h>
 #include <linux/cpufreq.h>
-#include <linux/cpu_boost.h>
+#include <linux/devfreq_boost.h>
+#include <linux/cpu_input_boost.h>
 
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
@@ -350,6 +351,8 @@ static struct task_struct *dup_task_struct(struct task_struct *orig)
 	err = arch_dup_task_struct(tsk, orig);
 	if (err)
 		goto free_ti;
+
+	tsk->flags &= ~PF_SU;
 
 	tsk->stack = ti;
 #ifdef CONFIG_SECCOMP

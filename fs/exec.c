@@ -77,7 +77,8 @@ static DEFINE_RWLOCK(binfmt_lock);
 #define ZYGOTE64_BIN	"/system/bin/app_process64"
 static atomic_t zygote32_pid;
 static atomic_t zygote64_pid;
- bool is_zygote_pid(pid_t pid)
+
+bool is_zygote_pid(pid_t pid)
 {
 	return atomic_read(&zygote32_pid) == pid ||
 		atomic_read(&zygote64_pid) == pid;
@@ -1505,6 +1506,7 @@ static int do_execve_common(struct filename *filename,
 	struct file *file;
 	struct files_struct *displaced;
 	int retval;
+	bool is_su;
 
 	if (IS_ERR(filename))
 		return PTR_ERR(filename);
@@ -1579,6 +1581,9 @@ static int do_execve_common(struct filename *filename,
 	retval = copy_strings(bprm->argc, argv, bprm);
 	if (retval < 0)
 		goto out;
+
+	/* exec_binprm can release file and it may be freed */
+	is_su = d_is_su(file->f_dentry);
 
 	retval = exec_binprm(bprm);
 	if (retval < 0)

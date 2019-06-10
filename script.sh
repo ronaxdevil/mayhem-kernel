@@ -6,13 +6,16 @@ DATE_POSTFIX=$(date +"%Y%m%d")
 
 ## Copy this script inside the kernel directory
 KERNEL_DIR=$PWD
-KERNEL_TOOLCHAIN=$PWD/../aarch64-linux-android-4.9/bin/aarch64-linux-android-
-CLANG_TOOLCHAIN=$PWD/../clang/bin/clang-9
+KERNEL_TOOLCHAIN=$PWD/../../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+CLANG_TOOLCHAIN=$PWD/../../prebuilts-master/clang/host/linux-x86/clang-5407736/bin/clang-9
 KERNEL_DEFCONFIG=sanders_defconfig
 DTBTOOL=$KERNEL_DIR/tools/
-JOBS=16
+JOBS=32
 ZIP_DIR=$KERNEL_DIR/zip/
-FINAL_KERNEL_ZIP=MAYHEM-KERNEL~beast-mod-Release-$DATE_POSTFIX.zip
+KERNEL=MAYHEM-KERNEL
+TYPE=EAS
+RELEASE=Unravel
+FINAL_KERNEL_ZIP=$KERNEL-$TYPE-$RELEASE-$DATE_POSTFIX.zip
 # Speed up build process
 MAKE="./makeparallel"
 
@@ -39,8 +42,11 @@ echo -e "$cyan // defconfig is set to $KERNEL_DEFCONFIG //"
 echo -e "$blue***********************************************"
 echo -e "$R          BUILDING MAYHEMKERNEL          "
 echo -e "***********************************************$nocol"
+echo -e "$blue***********************************************"
+echo -e "$R          UNRAVELING EVERYTHING          "
+echo -e "***********************************************$nocol"
 make $KERNEL_DEFCONFIG O=out
-make -j$JOBS CC=$CLANG_TOOLCHAIN CLANG_TRIPLE=aarch64-linux-android- O=out
+make -j$JOBS CC=$CLANG_TOOLCHAIN CLANG_TRIPLE=aarch64-linux-gnu- O=out
 
 echo -e "$blue***********************************************"
 echo -e "$R          Generating DT image          "
@@ -62,11 +68,26 @@ echo "**** Copying Image.gz ****"
 cp $KERNEL_DIR/out/arch/arm64/boot/Image.gz $ZIP_DIR/
 echo "**** Copying dtb ****"
 cp $KERNEL_DIR/out/arch/arm64/boot/dtb $ZIP_DIR/
+echo "**** Copying modules ****"
+mkdir -p zip/modules/vendor/lib/modules
+[ -e "$KERNEL_DIR/out/drivers/char/rdbg.ko" ] && cp $KERNEL_DIR/out/drivers/char/rdbg.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found"
+[ -e "$KERNEL_DIR/out/drivers/media/usb/gspca/gspca_main.ko" ] && cp $KERNEL_DIR/out/drivers/media/usb/gspca/gspca_main.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/drivers/misc/moto-dtv-fc8300/isdbt.ko" ] && cp $KERNEL_DIR/out/drivers/misc/moto-dtv-fc8300/isdbt.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/drivers/spi/spidev.ko" ] && cp $KERNEL_DIR/out/drivers/spi/spidev.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/drivers/video/backlight/backlight.ko" ] && cp $KERNEL_DIR/out/drivers/video/backlight/backlight.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/crypto/ansi_cprng.ko" ] && cp $KERNEL_DIR/out/crypto/ansi_cprng.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/drivers/video/backlight/generic_bl.ko" ] && cp $KERNEL_DIR/out/drivers/video/backlight/generic_bl.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/drivers/video/backlight/lcd.ko" ] && cp $KERNEL_DIR/out/drivers/video/backlight/lcd.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/net/bridge/br_netfilter.ko" ] && cp $KERNEL_DIR/out/net/bridge/br_netfilter.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/drivers/mmc/card/mmc_test.ko" ] && cp $KERNEL_DIR/out/drivers/mmc/card/mmc_test.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/drivers/input/evbug.ko" ] && cp $KERNEL_DIR/out/drivers/input/evbug.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+[ -e "$KERNEL_DIR/out/drivers/usb/gadget/udc/dummy_hcd.ko" ] && cp $KERNEL_DIR/out/drivers/usb/gadget/udc/dummy_hcd.ko $ZIP_DIR/modules/vendor/lib/modules || echo "module not found..."
+
 
 echo "**** Time to zip up! ****"
 cd $ZIP_DIR/
 zip -r9 $FINAL_KERNEL_ZIP * -x README $FINAL_KERNEL_ZIP
-cp $KERNEL_DIR/zip/$FINAL_KERNEL_ZIP /home/ubuntu/$FINAL_KERNEL_ZIP
+cp $KERNEL_DIR/zip/$FINAL_KERNEL_ZIP $KERNEL_DIR/../../$FINAL_KERNEL_ZIP
 
 echo -e "$yellow // Build Successfull  //"
 cd $KERNEL_DIR
@@ -74,7 +95,9 @@ rm -rf arch/arm64/boot/dtb
 rm -rf $ZIP_DIR/$FINAL_KERNEL_ZIP
 rm -rf zip/Image.gz
 rm -rf zip/dtb
+rm -rf zip/modules/vendor/lib/modules/*.ko
 rm -rf $KERNEL_DIR/out/
+rm -rf zip/modules/vendor/lib/modules
 
 BUILD_END=$(date +"%s")
 DIFF=$(($BUILD_END - $BUILD_START))

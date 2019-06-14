@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
+ /* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -25,7 +25,6 @@
 #include <linux/uaccess.h>
 #include <linux/msm_mdp.h>
 #include <linux/panel_notifier.h>
-#include <linux/hardware_info.h>
 #include <linux/display_state.h>
 
 #include "mdss_dsi.h"

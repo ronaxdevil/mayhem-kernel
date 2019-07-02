@@ -96,6 +96,7 @@
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
+#include "walt.h"
 
 static atomic_t __su_instances;
 

@@ -275,6 +275,14 @@ csrNeighborRoamAddBssIdToPreauthFailList(tpAniSirGlobal pMac,
                                                           tSirMacAddr bssId);
 void csrNeighborRoamFreeNeighborRoamBSSNode(tpAniSirGlobal pMac,
                               tpCsrNeighborRoamBSSInfo neighborRoamBSSNode);
+/**
+ * csrRemoveNeighbourRoamPreauthCommand() - Remove any pending preauth
+ * command
+ * @pMac: Mac handle
+ *
+ * Return: None
+ */
+void csrRemoveNeighbourRoamPreauthCommand(tpAniSirGlobal pMac);
 
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD

@@ -10,7 +10,7 @@ KERNEL_TOOLCHAIN=$PWD/../../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-androi
 CLANG_TOOLCHAIN=$PWD/../../prebuilts-master/clang/host/linux-x86/clang-5657785/bin/clang-9
 KERNEL_DEFCONFIG=sanders_defconfig
 DTBTOOL=$KERNEL_DIR/tools/
-JOBS=64
+JOBS=4
 ZIP_DIR=$KERNEL_DIR/zip/
 KERNEL=MAYHEM-KERNEL
 TYPE=EAS-oc
@@ -36,7 +36,7 @@ export ARCH=arm64
 export SUBARCH=arm64
 
 echo -e  "$R // Cleaning up //"
-sudo make clean && sudo make mrproper && rm -rf out/
+make clean && make mrproper && rm -rf out/
 
 echo -e "$cyan // defconfig is set to $KERNEL_DEFCONFIG //"
 echo -e "$blue***********************************************"
